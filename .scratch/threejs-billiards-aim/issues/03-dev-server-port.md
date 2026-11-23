@@ -4,7 +4,7 @@
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-agent
+**Status:** done
 
 ## Acceptance criteria
 
@@ -29,3 +29,8 @@
 
 - 生产构建/预览端口、其他 npm scripts、Vite 插件或依赖变更。
 - 视觉改动（票 01/02）。
+
+
+## Status note
+
+integrated bc7cdc2f4ac5b04a0a4bd9760091de9c01f2860f; task tree checks-only integration.
