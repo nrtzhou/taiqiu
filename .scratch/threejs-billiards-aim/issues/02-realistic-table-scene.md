@@ -4,7 +4,7 @@
 
 **Blocked by:** 01
 
-**Status:** ready-for-agent
+**Status:** done
 
 ## Acceptance criteria
 
@@ -31,3 +31,8 @@
 
 - 随机摆球、自动选袋、进球线/瞄准线/ghost 球/标记、显隐按钮。
 - 最终 README 操作说明。
+
+
+## Status note
+
+integrated 94d31e2a5183a2b35517b4dc549f36bca1681625; task tree checks-only integration.
