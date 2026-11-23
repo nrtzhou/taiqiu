@@ -4,7 +4,7 @@
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-agent
+**Status:** done
 
 ## Acceptance criteria
 
@@ -35,3 +35,8 @@
 - 布面纹理与台呢材质（票 02）。
 - 瞄准/选袋/随机/碰撞逻辑、相机与光照、叠加层颜色与行为、UI 结构。
 - 物理、进袋动画、新依赖、外部贴图。
+
+
+## Status note
+
+integrated 034791545622aa729e6bb423319036df32f77814; task tree checks-only integration.
