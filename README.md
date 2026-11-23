@@ -9,7 +9,7 @@ pnpm install
 pnpm dev
 ```
 
-`pnpm dev` 启动 Vite 开发服务器，浏览器打开终端提示的地址即可。
+`pnpm dev` 启动 Vite 开发服务器（固定 6173 端口，端口被占用时直接报错退出），浏览器打开 <http://localhost:6173>。
 
 ```bash
 pnpm build    # 生成可部署的 dist/ 静态产物
