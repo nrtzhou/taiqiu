@@ -3,11 +3,9 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 
 import { createCueBall, createTargetBall } from './balls.js';
-import { BALL_RADIUS } from './geometry.js';
+import { BALL_RADIUS, randomShot } from './geometry.js';
+import { createAimOverlay } from './overlay.js';
 import { createTable } from './table.js';
-
-const CUE_START = { x: -0.58, z: 0.22 };
-const TARGET_START = { x: 0.36, z: -0.18 };
 
 const app = document.querySelector('#app');
 
@@ -76,17 +74,32 @@ scene.add(floor);
 scene.add(createTable());
 
 const cueBall = createCueBall();
-cueBall.position.set(CUE_START.x, BALL_RADIUS, CUE_START.z);
 scene.add(cueBall);
 
 const targetBall = createTargetBall();
-targetBall.position.set(TARGET_START.x, BALL_RADIUS, TARGET_START.z);
-// 球面编号在纹理 u=0.25 处朝 +z，旋转球体让编号面向初始相机。
-targetBall.rotation.y = Math.atan2(
-  camera.position.x - TARGET_START.x,
-  camera.position.z - TARGET_START.z,
-);
 scene.add(targetBall);
+
+const aimOverlay = createAimOverlay();
+scene.add(aimOverlay.group);
+
+const rackButton = document.querySelector('#rack');
+const toggleButton = document.querySelector('#toggle-lines');
+
+function rack() {
+  const shot = randomShot();
+  cueBall.position.set(shot.cue.x, BALL_RADIUS, shot.cue.z);
+  targetBall.position.set(shot.target.x, BALL_RADIUS, shot.target.z);
+  aimOverlay.update(shot);
+}
+
+rackButton.addEventListener('click', rack);
+toggleButton.addEventListener('click', () => {
+  const visible = !aimOverlay.linesVisible;
+  aimOverlay.setLinesVisible(visible);
+  toggleButton.textContent = visible ? '隐藏进球线和瞄准线' : '显示进球线和瞄准线';
+});
+
+rack();
 
 function handleResize() {
   camera.aspect = window.innerWidth / window.innerHeight;
@@ -99,5 +112,6 @@ window.addEventListener('resize', handleResize);
 
 renderer.setAnimationLoop(() => {
   controls.update();
+  aimOverlay.animate(performance.now() / 1000);
   renderer.render(scene, camera);
 });
