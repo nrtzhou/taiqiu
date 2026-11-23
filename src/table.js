@@ -154,7 +154,7 @@ function createBed(clothMaterial) {
   return bed;
 }
 
-function createCushionGeometry() {
+function createCushionGeometry(length) {
   const shape = new THREE.Shape();
   shape.moveTo(0, 0);
   shape.lineTo(0, 0.03);
@@ -163,17 +163,16 @@ function createCushionGeometry() {
   shape.lineTo(CUSHION_DEPTH, 0);
   shape.closePath();
 
-  const geometry = new THREE.ExtrudeGeometry(shape, { depth: 1, bevelEnabled: false, steps: 1 });
-  // 以段中点定位，旋转只决定剖面朝向。
-  geometry.translate(0, 0, -0.5);
+  // 按实际段长挤出，UV 与床面同为米制；不能再靠 scale.z 拉伸。
+  const geometry = new THREE.ExtrudeGeometry(shape, { depth: length, bevelEnabled: false, steps: 1 });
+  geometry.translate(0, 0, -length / 2);
   return geometry;
 }
 
-function addCushion(group, geometry, material, x, z, length, rotationY) {
+function addCushion(group, geometry, material, x, z, rotationY) {
   const cushion = new THREE.Mesh(geometry, material);
   cushion.position.set(x, 0, z);
   cushion.rotation.y = rotationY;
-  cushion.scale.z = length;
   cushion.castShadow = true;
   cushion.receiveShadow = true;
   group.add(cushion);
@@ -181,23 +180,23 @@ function addCushion(group, geometry, material, x, z, length, rotationY) {
 
 function createCushions(clothMaterial) {
   const cushions = new THREE.Group();
-  const geometry = createCushionGeometry();
   const longSegments = [
     [-HALF_WIDTH + CORNER_MOUTH, -MIDDLE_MOUTH],
     [MIDDLE_MOUTH, HALF_WIDTH - CORNER_MOUTH],
   ];
+  const longGeometry = createCushionGeometry(longSegments[0][1] - longSegments[0][0]);
 
   for (const [start, end] of longSegments) {
     const center = (start + end) / 2;
-    const length = end - start;
     // 鼻线在台边，剖面朝木框方向;局部 +x 指向台外。
-    addCushion(cushions, geometry, clothMaterial, center, HALF_HEIGHT, length, -Math.PI / 2);
-    addCushion(cushions, geometry, clothMaterial, center, -HALF_HEIGHT, length, Math.PI / 2);
+    addCushion(cushions, longGeometry, clothMaterial, center, HALF_HEIGHT, -Math.PI / 2);
+    addCushion(cushions, longGeometry, clothMaterial, center, -HALF_HEIGHT, Math.PI / 2);
   }
 
   const shortLength = TABLE_HEIGHT - 2 * CORNER_MOUTH;
-  addCushion(cushions, geometry, clothMaterial, HALF_WIDTH, 0, shortLength, 0);
-  addCushion(cushions, geometry, clothMaterial, -HALF_WIDTH, 0, shortLength, Math.PI);
+  const shortGeometry = createCushionGeometry(shortLength);
+  addCushion(cushions, shortGeometry, clothMaterial, HALF_WIDTH, 0, 0);
+  addCushion(cushions, shortGeometry, clothMaterial, -HALF_WIDTH, 0, Math.PI);
 
   return cushions;
 }
