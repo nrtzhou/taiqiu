@@ -4,7 +4,7 @@
 
 **Blocked by:** 02
 
-**Status:** ready-for-agent
+**Status:** done
 
 ## Acceptance criteria
 
@@ -29,3 +29,8 @@
 
 - 物理、击球、计分、多人、拖球、存档、音效。
 - 额外的 UI 控件或设置项。
+
+
+## Status note
+
+integrated 8a0a618b4f3d12e200cc81ad58faef17dc5d58f1; task tree checks-only integration.
