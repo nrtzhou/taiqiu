@@ -34,8 +34,14 @@ function pointSegmentDistance(point, start, end) {
   return Math.hypot(point.x - (start.x + dx * t), point.z - (start.z + dz * t));
 }
 
+// 球心落入袋洞（袋口半径 + 球半径）即视为整颗球已进袋，不能再作为任何球位。
+function inPocketMouth(point) {
+  return POCKETS.some((pocket) => distance(point, pocket) < pocket.mouthRadius + BALL_RADIUS);
+}
+
 function onTable(point) {
-  return Math.abs(point.x) <= TABLE_WIDTH / 2 - BALL_RADIUS + EPSILON
+  return !inPocketMouth(point)
+    && Math.abs(point.x) <= TABLE_WIDTH / 2 - BALL_RADIUS + EPSILON
     && Math.abs(point.z) <= TABLE_HEIGHT / 2 - BALL_RADIUS + EPSILON;
 }
 

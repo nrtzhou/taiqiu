@@ -46,6 +46,15 @@ function firstRailExit(target, pocket) {
   return { x: target.x + dx * t, z: target.z + dz * t };
 }
 
+function assertClearOfPockets(point, label) {
+  for (const pocket of POCKETS) {
+    assert.ok(
+      Math.hypot(point.x - pocket.x, point.z - pocket.z) >= pocket.mouthRadius + R - EPS,
+      `${label} 落入袋口区域`,
+    );
+  }
+}
+
 function mulberry32(seed) {
   return () => {
     seed = (seed + 0x6d2b79f5) | 0;
@@ -57,7 +66,7 @@ function mulberry32(seed) {
 
 test('直球：切角约为 0，并选中正对的袋口', () => {
   const target = { x: 0, z: 0 };
-  const cue = { x: 0, z: -0.55 };
+  const cue = { x: 0, z: -0.52 };
   const shot = createShot(cue, target);
 
   assert.ok(shot);
@@ -164,8 +173,44 @@ test('选中袋口的切角等于所有可行袋口切角的最小值', () => {
   assert.deepEqual(shot.pocket, feasible.find((result) => result.cutAngle === minCutAngle).pocket);
 });
 
+test('袋洞内的球心不能作为母球、目标球或 ghost', () => {
+  assert.equal(createShot({ x: 0, z: -0.599 }, { x: 0, z: 0 }), null);
+  assert.equal(createShot({ x: 0, z: -0.3 }, { x: 0, z: -0.599 }), null);
+
+  const target = { x: -0.1, z: 0.58 };
+  const cue = { x: 0.4, z: -0.3 };
+  const topLeftCorner = POCKETS.find((pocket) => pocket.x < 0 && pocket.z > 0);
+  const { feasible, ghost } = evaluatePocket(cue, target, topLeftCorner);
+
+  assert.ok(
+    Math.hypot(ghost.x - TOP_MIDDLE.x, ghost.z - TOP_MIDDLE.z)
+      < MIDDLE_POCKET_MOUTH_RADIUS + R,
+    '该局面的 ghost 应落入上中袋洞',
+  );
+  assert.equal(feasible, false);
+});
+
+test('随机摆球丢弃落入袋口的首次采样，返回后备局面', () => {
+  const samples = [
+    0.5, 1 / 1200, 0.5, 0.5,
+    0.6619433198380567, 0.6666666666666667, 0.33805668016194335, 0.41666666666666663,
+  ];
+  let calls = 0;
+  const shot = randomShot(() => samples[calls++]);
+
+  assert.equal(calls, samples.length, '首次采样应被丢弃，恰好消耗两轮采样');
+  assert.ok(shot);
+  assertClose(shot.cue.x, 0.4, 1e-12, '后备母球 x；');
+  assertClose(shot.cue.z, 0.2, 1e-12, '后备母球 z；');
+  assertClose(shot.target.x, -0.4, 1e-12, '后备目标球 x；');
+  assertClose(shot.target.z, -0.1, 1e-12, '后备目标球 z；');
+  for (const [name, point] of [['母球', shot.cue], ['目标球', shot.target], ['ghost', shot.ghost]]) {
+    assertClearOfPockets(point, `后备局面 ${name}`);
+  }
+});
+
 test('随机局面满足几何不变量，且选袋切角最小', () => {
-  for (let seed = 1; seed <= 20; seed += 1) {
+  for (let seed = 1; seed <= 100; seed += 1) {
     const shot = randomShot(mulberry32(seed));
     const label = `seed ${seed}`;
 
@@ -178,6 +223,7 @@ test('随机局面满足几何不变量，且选袋切角最小', () => {
     for (const [name, point] of [['母球', cue], ['目标球', target], ['ghost', ghost]]) {
       assert.ok(Math.abs(point.x) <= TABLE_WIDTH / 2 - R + EPS, `${label} ${name} x 出界`);
       assert.ok(Math.abs(point.z) <= TABLE_HEIGHT / 2 - R + EPS, `${label} ${name} z 出界`);
+      assertClearOfPockets(point, `${label} ${name}`);
     }
     assert.ok(pointSegmentDistance(cue, target, pocket) > 2 * R, `${label} 母球挡住了进球线`);
     assert.ok(
