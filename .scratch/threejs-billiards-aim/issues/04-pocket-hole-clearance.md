@@ -4,7 +4,7 @@
 
 **Blocked by:** 03
 
-**Status:** ready-for-agent
+**Status:** done
 
 ## Acceptance criteria
 
@@ -26,3 +26,8 @@
 ## Out of scope
 
 - 视觉、UI、相机、材质改动。
+
+
+## Status note
+
+integrated 9a592c840fb9f0aae6ac0641f46a53b4fa930723; task tree checks-only integration.
