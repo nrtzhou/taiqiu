@@ -36,6 +36,11 @@ function roundedRectShape(width, height, radius) {
 }
 
 const FRAME_CUT_MARGIN = 0.009;
+const FRAME_BEVEL = 0.003;
+const LINER_WALL_INSET = 0.004;
+const LINER_FLANGE_OVERLAP = 0.0002;
+const BUCKET_BOTTOM_Y = -0.12;
+const BUCKET_BOTTOM_INSET = 0.001;
 
 function createFrameHolePath(halfWidth, halfHeight) {
   const path = new THREE.Path();
@@ -84,8 +89,8 @@ function createFrame(woodMaterial) {
   const geometry = new THREE.ExtrudeGeometry(shape, {
     depth: RAIL_TOP - FRAME_BOTTOM - 0.006,
     bevelEnabled: true,
-    bevelThickness: 0.003,
-    bevelSize: 0.003,
+    bevelThickness: FRAME_BEVEL,
+    bevelSize: FRAME_BEVEL,
     bevelSegments: 2,
     curveSegments: 10,
   });
@@ -99,11 +104,24 @@ function createFrame(woodMaterial) {
 }
 
 function createApron(woodMaterial) {
-  const apron = new THREE.Mesh(
-    new THREE.BoxGeometry(OUTER_WIDTH - 0.03, FRAME_BOTTOM - APRON_BOTTOM, OUTER_HEIGHT - 0.03),
-    woodMaterial,
-  );
-  apron.position.y = (FRAME_BOTTOM + APRON_BOTTOM) / 2;
+  const shape = roundedRectShape(OUTER_WIDTH - 0.03, OUTER_HEIGHT - 0.03, 0.06);
+
+  // 围板在袋口处开净空，袋桶从中间穿过，避免封住袋底。
+  for (const pocket of POCKETS) {
+    const hole = new THREE.Path();
+    hole.absarc(pocket.x, -pocket.z, pocket.mouthRadius + FRAME_CUT_MARGIN, 0, Math.PI * 2, true);
+    shape.holes.push(hole);
+  }
+
+  const geometry = new THREE.ExtrudeGeometry(shape, {
+    depth: FRAME_BOTTOM - APRON_BOTTOM,
+    bevelEnabled: false,
+    curveSegments: 32,
+  });
+  geometry.rotateX(-Math.PI / 2);
+
+  const apron = new THREE.Mesh(geometry, woodMaterial);
+  apron.position.y = APRON_BOTTOM;
   apron.castShadow = true;
   apron.receiveShadow = true;
   return apron;
@@ -201,52 +219,117 @@ function createCushions(clothMaterial) {
   return cushions;
 }
 
+// 布面孔到框孔之间用一条与布面齐平的深色环带收口；木框/库边一侧的外弧段
+// 立壁升到框顶并外翻盖住倒角；下壁全周延伸到袋底，遮住围板孔内壁。
+function addPocketShell(positions, indices, mouth, wallRadius) {
+  const segments = 256;
+  const quad = (a, b, c, d) => indices.push(a, b, c, b, d, c);
+
+  for (let i = 0; i <= segments; i += 1) {
+    const angle = (i / segments) * Math.PI * 2;
+    const dx = Math.sin(angle);
+    const dz = Math.cos(angle);
+    positions.push(dx * mouth, 0, dz * mouth);
+    positions.push(dx * wallRadius, 0, dz * wallRadius);
+  }
+  for (let i = 0; i < segments; i += 1) {
+    const a = i * 2;
+    quad(a, a + 1, a + 2, a + 3);
+  }
+
+  const lowerBase = positions.length / 3;
+  for (let i = 0; i <= segments; i += 1) {
+    const angle = (i / segments) * Math.PI * 2;
+    const dx = Math.sin(angle);
+    const dz = Math.cos(angle);
+    positions.push(dx * wallRadius, 0, dz * wallRadius);
+    positions.push(dx * wallRadius, BUCKET_BOTTOM_Y, dz * wallRadius);
+  }
+  for (let i = 0; i < segments; i += 1) {
+    const a = lowerBase + i * 2;
+    quad(a, a + 1, a + 2, a + 3);
+  }
+}
+
+// 弧段从库边后面起，止于与两侧木框缺口的交点，露出布面开口、不包到袋口两侧。
+function addPocketRim(positions, indices, wallRadius, rimOuter, arcStart, arcLength) {
+  const segments = 96;
+  const quad = (a, b, c, d) => indices.push(a, b, c, b, d, c);
+  const rimBase = positions.length / 3;
+
+  for (let i = 0; i <= segments; i += 1) {
+    const angle = arcStart + (arcLength * i) / segments;
+    const dx = Math.sin(angle);
+    const dz = Math.cos(angle);
+    positions.push(dx * wallRadius, 0, dz * wallRadius);
+    positions.push(dx * wallRadius, RAIL_TOP, dz * wallRadius);
+    positions.push(dx * rimOuter, RAIL_TOP, dz * rimOuter);
+  }
+  for (let i = 0; i < segments; i += 1) {
+    for (let band = 0; band < 2; band += 1) {
+      const a = rimBase + i * 3 + band;
+      quad(a, a + 1, a + 3, a + 4);
+    }
+  }
+
+  for (const end of [arcStart, arcStart + arcLength]) {
+    const dx = Math.sin(end);
+    const dz = Math.cos(end);
+    const base = positions.length / 3;
+    positions.push(dx * wallRadius, 0, dz * wallRadius);
+    positions.push(dx * wallRadius, RAIL_TOP, dz * wallRadius);
+    positions.push(dx * rimOuter, RAIL_TOP, dz * rimOuter);
+    indices.push(base, base + 1, base + 2);
+  }
+}
+
+function createPocketLinerGeometry(pocket) {
+  const mouth = pocket.mouthRadius;
+  const cutRadius = mouth + FRAME_CUT_MARGIN;
+  const wallRadius = cutRadius - LINER_WALL_INSET;
+  const halfAngle = Math.acos(CUSHION_DEPTH / cutRadius);
+  const outward = Math.atan2(Math.sign(pocket.x), Math.sign(pocket.z));
+  const corner = pocket.x !== 0;
+  const arcStart = outward - halfAngle - (corner ? Math.PI / 4 : 0);
+  const arcLength = 2 * halfAngle + (corner ? Math.PI / 2 : 0);
+  const rimOuter = cutRadius + FRAME_BEVEL + LINER_FLANGE_OVERLAP;
+  const positions = [];
+  const indices = [];
+
+  addPocketShell(positions, indices, mouth, wallRadius);
+  addPocketRim(positions, indices, wallRadius, rimOuter, arcStart, arcLength);
+
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+  geometry.setIndex(indices);
+  geometry.computeVertexNormals();
+  return geometry;
+}
+
 function createPockets() {
   const pockets = new THREE.Group();
   const cavityMaterial = new THREE.MeshStandardMaterial({
-    color: 0x050806,
-    roughness: 0.92,
+    color: 0x252c27,
+    roughness: 0.95,
     metalness: 0,
     side: THREE.DoubleSide,
-  });
-  const ringMaterial = new THREE.MeshStandardMaterial({
-    color: 0xa08a5a,
-    metalness: 1,
-    roughness: 0.35,
-    envMapIntensity: 0.9,
+    polygonOffset: true,
+    polygonOffsetFactor: -1,
+    polygonOffsetUnits: -1,
   });
 
   for (const pocket of POCKETS) {
-    const mouth = pocket.mouthRadius;
-    const depth = RAIL_TOP + 0.001 + 0.019;
-    const shaft = new THREE.Mesh(
-      new THREE.CylinderGeometry(mouth, mouth, depth, 48, 1, true),
-      cavityMaterial,
-    );
-    shaft.position.set(pocket.x, RAIL_TOP + 0.001 - depth / 2, pocket.z);
-    pockets.add(shaft);
+    const liner = new THREE.Mesh(createPocketLinerGeometry(pocket), cavityMaterial);
+    liner.position.set(pocket.x, 0, pocket.z);
+    liner.receiveShadow = true;
+    pockets.add(liner);
 
-    const bottom = new THREE.Mesh(new THREE.CircleGeometry(mouth, 32), cavityMaterial);
-    bottom.position.set(pocket.x, -0.019, pocket.z);
+    const bottomRadius = pocket.mouthRadius + FRAME_CUT_MARGIN - BUCKET_BOTTOM_INSET;
+    const bottom = new THREE.Mesh(new THREE.CircleGeometry(bottomRadius, 128), cavityMaterial);
+    bottom.position.set(pocket.x, BUCKET_BOTTOM_Y, pocket.z);
     bottom.rotation.x = -Math.PI / 2;
+    bottom.receiveShadow = true;
     pockets.add(bottom);
-
-    const collar = new THREE.Mesh(
-      new THREE.RingGeometry(mouth - 0.0015, mouth + FRAME_CUT_MARGIN, 48),
-      cavityMaterial,
-    );
-    collar.position.set(pocket.x, RAIL_TOP + 0.0005, pocket.z);
-    collar.rotation.x = -Math.PI / 2;
-    pockets.add(collar);
-
-    const ring = new THREE.Mesh(
-      new THREE.TorusGeometry(mouth + 0.003, 0.0045, 12, 64),
-      ringMaterial,
-    );
-    ring.position.set(pocket.x, RAIL_TOP + 0.001, pocket.z);
-    ring.rotation.x = -Math.PI / 2;
-    ring.castShadow = true;
-    pockets.add(ring);
   }
 
   return pockets;
