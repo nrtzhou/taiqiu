@@ -55,6 +55,7 @@
 - 围板从实心 Box 改为带 6 个圆形净空的拉伸形状（或等效的断开/下沉构造），净空半径 = `mouthRadius + FRAME_CUT_MARGIN`（0.009），顶面仍在 y=-0.020，底面仍在 y=-0.14；袋桶底 y≈-0.12 位于围板净空内，不与木板相交。
 - 台呢纹理模块：`createClothTexture` 输出 1024×1024 可平铺颜色贴图，算法为低幅度逐像素纤维噪声 + 可循环的低频 value noise 云斑；不画任何周期性条纹。`createClothBumpTexture` 输出细密低幅度灰噪声（可同样叠加弱云斑），保持非 sRGB。
 - 球桌材质：台呢 `MeshStandardMaterial`，`bumpScale` 0.03（允许 0.02–0.04），`roughness` 0.92（允许 0.90–0.94），`metalness` 0；颜色与 bump 的 repeat 均为 2.3；床面与库边共用该材质。
+- 库边几何按每段实际长度生成并按长度居中，不再用“单位长度挤出 + `scale.z` 拉伸”：UV 在缩放前生成，当前长库边约 1.14 m 的缩放会让库边纹理比床面沿长度方向粗约 14%。长库边两段与短库边两段可各自复用同长度几何。
 - 不引入 `MeshPhysicalMaterial` sheen、不调整相机、灯光、色调映射与叠加层材质。
 
 ## Testing Decisions
