@@ -4,7 +4,7 @@
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-agent
+**Status:** done
 
 ## Acceptance criteria
 
@@ -34,3 +34,8 @@
 - 相机、光照、色调映射、叠加层、交互逻辑。
 - 几何模块与任何测试语义。
 - 物理、新功能、外部贴图。
+
+
+## Status note
+
+integrated 1dcafc8c8de61a59e7ef18184fc7f4acabfe5433; task tree checks-only integration.
