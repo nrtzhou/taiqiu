@@ -288,17 +288,14 @@ export function createTable() {
   const clothMap = createClothTexture();
   const clothBump = createClothBumpTexture();
   const woodMap = createWoodTexture();
-  // ShapeGeometry / ExtrudeGeometry 的 UV 以米为单位，重复次数按米换算。
-  clothMap.repeat.set(2.3, 2.3);
-  clothBump.repeat.set(2.3, 2.3);
   woodMap.wrapS = THREE.MirroredRepeatWrapping;
   woodMap.wrapT = THREE.MirroredRepeatWrapping;
 
   const clothMaterial = new THREE.MeshStandardMaterial({
     map: clothMap,
     bumpMap: clothBump,
-    bumpScale: 0.15,
-    roughness: 0.94,
+    bumpScale: 0.03,
+    roughness: 0.92,
     metalness: 0,
   });
   const woodMaterial = new THREE.MeshPhysicalMaterial({

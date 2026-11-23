@@ -19,57 +19,62 @@ function toTexture(canvas, { repeatX = 1, repeatY = 1, srgb = true } = {}) {
   return texture;
 }
 
-export function createClothTexture() {
-  const size = 512;
-  const cells = 16;
+// 格点取模回绕的平滑噪声，保证 1024 纹理四边可无缝平铺。
+function createTileableNoise(size, cells) {
   const grid = Array.from({ length: cells * cells }, () => Math.random());
-  const { canvas, ctx } = createCanvas(size, size);
-  const image = ctx.createImageData(size, size);
+  const at = (ix, iy) => grid[(((iy % cells) + cells) % cells) * cells + (((ix % cells) + cells) % cells)];
+  const smooth = (t) => t * t * (3 - 2 * t);
 
-  const at = (ix, iy) => grid[((iy % cells + cells) % cells) * cells + ((ix % cells + cells) % cells)];
-  const sampleNoise = (x, y) => {
+  return (x, y) => {
     const gx = (x / size) * cells;
     const gy = (y / size) * cells;
     const x0 = Math.floor(gx);
     const y0 = Math.floor(gy);
-    const fx = gx - x0;
-    const fy = gy - y0;
-    const sx = fx * fx * (3 - 2 * fx);
-    const sy = fy * fy * (3 - 2 * fy);
+    const sx = smooth(gx - x0);
+    const sy = smooth(gy - y0);
     const top = at(x0, y0) * (1 - sx) + at(x0 + 1, y0) * sx;
     const bottom = at(x0, y0 + 1) * (1 - sx) + at(x0 + 1, y0 + 1) * sx;
     return top * (1 - sy) + bottom * sy;
   };
+}
+
+// ShapeGeometry / ExtrudeGeometry 的 UV 以米为单位，2.3 表示每 0.43m 重复一次。
+const CLOTH_REPEAT = 2.3;
+
+export function createClothTexture() {
+  const size = 1024;
+  const { canvas, ctx } = createCanvas(size, size);
+  const image = ctx.createImageData(size, size);
+  const cloud = createTileableNoise(size, 4);
 
   for (let y = 0; y < size; y += 1) {
     for (let x = 0; x < size; x += 1) {
-      // 平纹编织 + 细噪声 + 有机低频绒面，远看不会出现规则格子。
-      const weave = ((x % 4) < 2 ? 2 : -2) + ((y % 4) < 2 ? 2 : -2);
-      const noise = (Math.random() - 0.5) * 14;
-      const mottle = (sampleNoise(x, y) - 0.5) * 10;
+      // 很弱的低频云斑 + 低对比度细纤维，不构成固定周期图案。
+      const mottle = (cloud(x, y) - 0.5) * 8;
+      const fiber = (Math.random() - 0.5) * 5;
+      const shade = mottle + fiber;
       const offset = (y * size + x) * 4;
-      image.data[offset] = 30 + weave + noise + mottle;
-      image.data[offset + 1] = 78 + weave + noise + mottle;
-      image.data[offset + 2] = 48 + weave * 0.6 + noise + mottle;
+      image.data[offset] = 30 + shade;
+      image.data[offset + 1] = 78 + shade;
+      image.data[offset + 2] = 48 + shade * 0.6;
       image.data[offset + 3] = 255;
     }
   }
 
   ctx.putImageData(image, 0, 0);
-  return toTexture(canvas, { repeatX: 6, repeatY: 3.2 });
+  return toTexture(canvas, { repeatX: CLOTH_REPEAT, repeatY: CLOTH_REPEAT });
 }
 
 export function createClothBumpTexture() {
-  const size = 256;
+  const size = 1024;
   const { canvas, ctx } = createCanvas(size, size);
   const image = ctx.createImageData(size, size);
 
   for (let y = 0; y < size; y += 1) {
     for (let x = 0; x < size; x += 1) {
-      const weave = ((x % 4) < 2 ? 22 : -22) + ((y % 4) < 2 ? 22 : -22);
-      const noise = (Math.random() - 0.5) * 24;
+      // 细密低幅灰噪声；幅度压低，靠低 bumpScale 呈现绒面而非砂砾。
+      const value = 128 + (Math.random() - 0.5) * 20;
       const offset = (y * size + x) * 4;
-      const value = 128 + weave + noise;
       image.data[offset] = value;
       image.data[offset + 1] = value;
       image.data[offset + 2] = value;
@@ -78,7 +83,7 @@ export function createClothBumpTexture() {
   }
 
   ctx.putImageData(image, 0, 0);
-  return toTexture(canvas, { repeatX: 6, repeatY: 3.2, srgb: false });
+  return toTexture(canvas, { repeatX: CLOTH_REPEAT, repeatY: CLOTH_REPEAT, srgb: false });
 }
 
 export function createWoodTexture() {
