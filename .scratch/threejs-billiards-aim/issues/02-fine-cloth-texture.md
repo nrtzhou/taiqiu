@@ -1,0 +1,41 @@
+# 02: 细密台呢——去方格、降 bump、低频云斑
+
+**What to build:** 把台呢从 512 分辨率 4px 方格 + 强随机噪声 + bumpScale 0.15 的粗糙砂面，改为 1024 分辨率的细密平滑呢面：低对比度逐像素细纤维 + 很弱的可平铺低频云斑，细密低幅 bump，`bumpScale` 0.02–0.04，roughness 0.90–0.94、metalness 0；床面与库边共用同一材质与纹理尺度，默认视角无明显重复接缝。
+
+**Blocked by:** None (can start immediately)
+
+**Status:** done
+
+## Acceptance criteria
+
+- [ ] 台呢颜色贴图为 1024×1024 程序化 canvas 纹理，可平铺；无固定周期的 2px/4px 方格、条纹或其他可辨重复图案，无逐像素强随机噪点。
+- [ ] 视觉为低对比度细纤维 + 很弱的低频云斑（单通道幅度约 ±2–5）；基色保持现有绿色调。
+- [ ] bump 贴图为细密低幅灰噪声（非 sRGB），`bumpScale` 在 0.02–0.04 之间（建议 0.03）；台呢 `roughness` 0.90–0.94（建议 0.92）、`metalness` 0。
+- [ ] 床面与库边继续共用同一台呢材质；颜色与 bump 的 repeat 一致（2.3），纹理尺度一致；默认视角无明显重复接缝。
+- [ ] 库边不再用 1 m 挤出后 `scale.z` 拉伸；按长/短库边实际长度生成几何并居中（长段约 1.14 m），消除沿长度方向约 14% 的纹理拉伸，使库边与床面 UV 尺度一致。
+- [ ] 默认视角与近距离截图中布面平整细腻，无砂面/编织篮纹/粗颗粒，无高光塑料感。
+- [ ] `pnpm test`、`pnpm build` 通过；浏览器 console/page error 为 0；无新增依赖、无外部图片。
+- [ ] 随机摆球、显隐按钮、拖拽/缩放不回归。
+- [ ] 无 TODO、无临时调试代码或调试入口。
+
+## Verification
+
+- `pnpm test`、`pnpm build`。
+- 在本票 worktree 用独立端口启动 Vite（不得影响用户根目录 dev server），Playwright headless Chromium 1440×900：截图默认视角；用滚轮缩放 + 拖拽靠近床面与库边，确认纹理细密、尺度一致、无接缝；近景对比床面与库边沿长度方向的纹理密度，确认无拉伸差异。
+- 同次冒烟点击“随机摆球”≥3 次、切换显隐按钮、拖拽缩放，采集 console/page error = 0；结束后停掉 dev server 与浏览器，临时脚本/截图仅放 `/tmp`。
+
+## Skills
+
+- `ponytail`：删掉方格里那套代码，保留最少的高频噪声 + 低频云斑生成路径，不加新依赖。
+
+## Out of scope
+
+- 袋口构造与围板（票 01）。
+- 相机、光照、色调映射、叠加层、交互逻辑。
+- 几何模块与任何测试语义。
+- 物理、新功能、外部贴图。
+
+
+## Status note
+
+integrated 1dcafc8c8de61a59e7ef18184fc7f4acabfe5433; task tree checks-only integration.
