@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "limits": {
+    "maxTasks": 4,
+    "maxWorkersPerTask": 3
+  },
+  "timeouts": {
+    "waitMs": 60000,
+    "launchMs": 60000,
+    "checkMs": 0,
+    "verifyMs": 600000
+  },
+  "checks": [],
+  "checkCandidates": [],
+  "verify": [],
+  "verifyAt": "final",
+  "review": "off",
+  "runtime": {}
+}
