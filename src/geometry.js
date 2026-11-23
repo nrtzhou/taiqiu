@@ -45,6 +45,13 @@ function onTable(point) {
     && Math.abs(point.z) <= TABLE_HEIGHT / 2 - BALL_RADIUS + EPSILON;
 }
 
+// 母球从 C 撞向 ghost 的直线路径若擦过袋口（袋口半径减球半径），母球会先落袋。
+function ghostPathClear(cue, ghost) {
+  return POCKETS.every((pocket) => (
+    pointSegmentDistance(pocket, cue, ghost) >= pocket.mouthRadius - BALL_RADIUS - EPSILON
+  ));
+}
+
 function firstRailExit(target, pocket) {
   const dx = pocket.x - target.x;
   const dz = pocket.z - target.z;
@@ -86,6 +93,7 @@ export function evaluatePocket(cue, target, pocket) {
   const feasible = onTable(cue)
     && onTable(target)
     && onTable(ghost)
+    && ghostPathClear(cue, ghost)
     && distance(cue, target) > 2 * BALL_RADIUS
     && aimLength >= MIN_CUE_GHOST_DISTANCE
     && pointSegmentDistance(cue, target, pocket) > 2 * BALL_RADIUS

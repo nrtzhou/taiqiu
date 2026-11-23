@@ -192,15 +192,31 @@ test('袋洞内的球心不能作为母球、目标球或 ghost', () => {
   assert.equal(feasible, false);
 });
 
+test('母球到 ghost 的路径穿过袋口时该袋不可行', () => {
+  const cue = { x: -0.09, z: -0.5998 };
+  const target = { x: 1.186, z: -0.592 };
+  const bottomRight = POCKETS.find((pocket) => pocket.x > 0 && pocket.z < 0);
+  const bottomMiddle = POCKETS.find((pocket) => pocket.x === 0 && pocket.z < 0);
+  const { feasible, ghost } = evaluatePocket(cue, target, bottomRight);
+
+  assert.ok(
+    pointSegmentDistance(bottomMiddle, cue, ghost) < MIDDLE_POCKET_MOUTH_RADIUS - R,
+    '该局面的 C→G 应穿过下中袋口',
+  );
+  assert.equal(feasible, false);
+  assert.equal(createShot(cue, target), null);
+});
+
 test('随机摆球丢弃落入袋口的首次采样，返回后备局面', () => {
   const samples = [
     0.5, 1 / 1200, 0.5, 0.5,
+    0.4, 1 / 1200, 0.75, 0.04,
     0.6619433198380567, 0.6666666666666667, 0.33805668016194335, 0.41666666666666663,
   ];
   let calls = 0;
   const shot = randomShot(() => samples[calls++]);
 
-  assert.equal(calls, samples.length, '首次采样应被丢弃，恰好消耗两轮采样');
+  assert.equal(calls, samples.length, '两段袋口采样都应被丢弃，恰好消耗三轮采样');
   assert.ok(shot);
   assertClose(shot.cue.x, 0.4, 1e-12, '后备母球 x；');
   assertClose(shot.cue.z, 0.2, 1e-12, '后备母球 z；');
@@ -228,6 +244,12 @@ test('随机局面满足几何不变量，且选袋切角最小', () => {
       assertClearOfPockets(point, `${label} ${name}`);
     }
     assert.ok(pointSegmentDistance(cue, target, pocket) > 2 * R, `${label} 母球挡住了进球线`);
+    for (const candidate of POCKETS) {
+      assert.ok(
+        pointSegmentDistance(candidate, cue, ghost) >= candidate.mouthRadius - R - EPS,
+        `${label} 母球到 ghost 的路径穿过袋口`,
+      );
+    }
     assert.ok(
       pointSegmentDistance(target, cue, ghost) >= 2 * R - EPS,
       `${label} 母球到 ghost 的路径穿过了目标球`,
