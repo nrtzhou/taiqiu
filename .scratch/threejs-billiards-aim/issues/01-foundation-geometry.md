@@ -4,7 +4,7 @@
 
 **Blocked by:** None
 
-**Status:** ready-for-agent
+**Status:** done
 
 ## Acceptance criteria
 
@@ -37,3 +37,8 @@
 
 - 3D 场景、球桌/球/贴图、相机、OrbitControls、按钮交互。
 - README 的完整操作说明（由最后一票收口）。
+
+
+## Status note
+
+integrated 2bca1982a643d27ef2c35159a3092ab7cbe57a2f; task tree checks-only integration.
