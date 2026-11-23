@@ -177,11 +177,13 @@ test('袋洞内的球心不能作为母球、目标球或 ghost', () => {
   assert.equal(createShot({ x: 0, z: -0.599 }, { x: 0, z: 0 }), null);
   assert.equal(createShot({ x: 0, z: -0.3 }, { x: 0, z: -0.599 }), null);
 
-  const target = { x: -0.1, z: 0.58 };
-  const cue = { x: 0.4, z: -0.3 };
-  const topLeftCorner = POCKETS.find((pocket) => pocket.x < 0 && pocket.z > 0);
-  const { feasible, ghost } = evaluatePocket(cue, target, topLeftCorner);
+  const target = { x: 0, z: 0.5 };
+  const cue = { x: 0.2, z: 0.599 };
+  const bottomMiddle = POCKETS.find((pocket) => pocket.x === 0 && pocket.z < 0);
+  const { feasible, ghost } = evaluatePocket(cue, target, bottomMiddle);
 
+  assertClearOfPockets(cue, '母球');
+  assertClearOfPockets(target, '目标球');
   assert.ok(
     Math.hypot(ghost.x - TOP_MIDDLE.x, ghost.z - TOP_MIDDLE.z)
       < MIDDLE_POCKET_MOUTH_RADIUS + R,
